@@ -26,6 +26,8 @@ app.use((req, res, next) => {
 
 app.get("/ping", (req, res) => res.send("pong"));
 
+app.use(express.urlencoded({ extended: false }));
+
 
 // routes
 app.use(authRoutes);
