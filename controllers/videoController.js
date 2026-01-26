@@ -1,46 +1,44 @@
-exports.searchYoutube = async (req, res) => {
-  try {
-    const query = req.body.query;
-    if (!query) return res.render("videos", { results: [], error: null });
+const favoriteRepo = require("../repositories/favoriteRepository");
 
-    const apiKey = process.env.YOUTUBE_API_KEY;
-    if (!apiKey) {
-      return res.render("videos", {
-        results: [],
-        error: "Missing YOUTUBE_API_KEY in environment variables",
-      });
+exports.getVideosPage = async (req, res) => {
+    try {
+        const favorites = await favoriteRepo.findByUserId(req.session.user.id);
+        res.render("videos", { 
+            user: req.session.user,
+            favorites: favorites 
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Error fetching videos");
     }
+};
 
-    const url =
-      "https://www.googleapis.com/youtube/v3/search" +
-      `?part=snippet&type=video&maxResults=6&q=${encodeURIComponent(query)}` +
-      `&key=${apiKey}`;
-
-    const response = await fetch(url);
-    const data = await response.json();
-
-    // Debug: לראות מה חזר מה-API
-    console.log("YouTube API response:", data);
-
-    // אם יש שגיאה מה-API
-    if (!response.ok || data.error) {
-      const msg =
-        data?.error?.message ||
-        `YouTube API error (status ${response.status})`;
-      return res.render("videos", { results: [], error: msg });
+exports.addFavorite = async (req, res) => {
+    try {
+        const { youtubeId, title, thumbnailUrl } = req.body;
+        const userId = req.session.user.id;
+        
+        // Prevent crashing if duplicate
+        try {
+            await favoriteRepo.create({ userId, videoId: youtubeId, title, thumbnailUrl });
+        } catch (e) {
+            console.log("Video likely already exists");
+        }
+        
+        res.redirect("/videos");
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Error adding favorite");
     }
+};
 
-    const items = Array.isArray(data.items) ? data.items : [];
-
-    const results = items.map((item) => ({
-      videoId: item?.id?.videoId,
-      title: item?.snippet?.title,
-      thumbnail: item?.snippet?.thumbnails?.medium?.url,
-    }));
-
-    res.render("videos", { results, error: null });
-  } catch (err) {
-    console.error("searchYoutube failed:", err);
-    res.render("videos", { results: [], error: "Server error while searching" });
-  }
+exports.removeFavorite = async (req, res) => {
+    try {
+        const { id } = req.body;
+        await favoriteRepo.delete(id);
+        res.redirect("/videos");
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Error deleting favorite");
+    }
 };

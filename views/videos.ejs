@@ -1,33 +1,100 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Videos</title>
+    <meta charset="UTF-8">
+    <title>Videos</title>
+    <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
-  <h2>YouTube Search</h2>
+    <nav class="navbar flex-between">
+        <a href="/" class="nav-brand">Tamar MVC App</a>
+        <div class="flex-center" style="gap: 15px;">
+            <a href="/" style="color: #94a3b8;">Dashboard</a>
+            <form action="/logout" method="POST">
+                <button class="btn btn-outline" style="padding: 5px 15px;">Logout</button>
+            </form>
+        </div>
+    </nav>
 
-  <form method="POST" action="/videos/search">
-    <input type="text" name="query" placeholder="Search YouTube..." required />
-    <button type="submit">Search</button>
-  </form>
+    <div class="container">
+        <div class="card" style="max-width: 100%; margin-bottom: 3rem; border-left: 4px solid var(--accent-color);">
+            <h2 style="margin-bottom: 1rem;">ADD RESOURCE</h2>
+            <div class="flex-between" style="gap: 10px; align-items: flex-end;">
+                <div style="flex-grow: 1;">
+                    <label>YouTube ID / URL</label>
+                    <input type="text" id="searchInput" placeholder="e.g. dQw4w9WgXcQ">
+                </div>
+                <button class="btn" onclick="searchVideo()" style="width: auto;">Search</button>
+            </div>
 
-  <hr />
+            <div id="searchResult" style="display: none; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                <div class="flex-between">
+                    <div>
+                        <h3 id="resultTitle" style="color: var(--accent-color);">Title</h3>
+                        <p style="font-size: 0.8rem; color: #94a3b8;">Ready to save.</p>
+                    </div>
+                    
+                    <form action="/videos/add" method="POST">
+                        <input type="hidden" name="youtubeId" id="inputYoutubeId">
+                        <input type="hidden" name="title" id="inputTitle">
+                        <input type="hidden" name="thumbnailUrl" id="inputThumb">
+                        <button class="btn" style="background-color: var(--accent-color);">SAVE</button>
+                    </form>
+                </div>
+            </div>
+        </div>
 
-  <% if (error) { %>
-  <p style="color:darkred;"><%= error %></p>
-<% } %>
+        <h2 style="border-bottom: 2px solid var(--border-color); padding-bottom: 10px;">SAVED DATA</h2>
+        
+        <div class="video-grid">
+            <% if (favorites.length === 0) { %>
+                <p style="color: #94a3b8;">No data found in local storage.</p>
+            <% } %>
 
+            <% favorites.forEach(video => { %>
+                <div class="video-card">
+                    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #000;">
+                        <iframe 
+                            src="https://www.youtube.com/embed/<%= video.videoId %>" 
+                            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                            allowfullscreen>
+                        </iframe>
+                    </div>
 
-  <% if (results && results.length > 0) { %>
-    <h3>Results:</h3>
-    <% results.forEach(v => { %>
-      <div style="margin-bottom:20px">
-        <img src="<%= v.thumbnail %>" />
-        <p><%= v.title %></p>
-      </div>
-    <% }) %>
-  <% } %>
+                    <div style="padding: 15px;">
+                        <h4 style="margin-bottom: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            <%= video.title %>
+                        </h4>
+                        <form action="/videos/delete" method="POST">
+                            <input type="hidden" name="id" value="<%= video.id %>">
+                            <button class="btn btn-danger" style="padding: 8px;">Remove</button>
+                        </form>
+                    </div>
+                </div>
+            <% }) %>
+        </div>
+    </div>
 
-  <a href="/">Back to Home</a>
+    <script>
+        function searchVideo() {
+            const query = document.getElementById('searchInput').value;
+            let videoId = query;
+            if(query.includes('v=')) videoId = query.split('v=')[1].split('&')[0];
+            else if (query.includes('youtu.be/')) videoId = query.split('youtu.be/')[1];
+
+            if (!videoId) return alert("Invalid Input");
+
+            const title = "Video Object [" + videoId + "]";
+            const thumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+
+            document.getElementById('resultTitle').innerText = title;
+            document.getElementById('searchResult').style.display = 'block';
+            
+            document.getElementById('inputYoutubeId').value = videoId;
+            document.getElementById('inputTitle').value = title;
+            document.getElementById('inputThumb').value = thumb;
+        }
+    </script>
 </body>
 </html>

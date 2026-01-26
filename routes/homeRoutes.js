@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const requireAuth = require("../middleware/requireAuth");
+const { requireLogin } = require("../middleware/authMiddleware");
 
-router.get("/", requireAuth, (req, res) => {
+router.get("/", requireLogin, (req, res) => {
   res.render("home", { user: req.session.user });
 });
 

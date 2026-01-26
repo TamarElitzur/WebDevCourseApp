@@ -1,9 +1,12 @@
 const express = require("express");
 const router = express.Router();
-const requireAuth = require("../middleware/requireAuth");
 const videoController = require("../controllers/videoController");
+const requireAuth = require("../middleware/requireAuth");
 
-router.get("/videos", requireAuth, videoController.showVideosPage);
-router.post("/videos/search", requireAuth, videoController.searchYoutube);
+router.use(requireAuth); // Protect all routes
+
+router.get("/videos", videoController.getVideosPage);
+router.post("/videos/add", videoController.addFavorite);
+router.post("/videos/delete", videoController.removeFavorite);
 
 module.exports = router;
