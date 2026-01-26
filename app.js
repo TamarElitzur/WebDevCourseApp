@@ -26,16 +26,14 @@ app.use((req, res, next) => {
 
 app.get("/ping", (req, res) => res.send("pong"));
 
-app.use(express.urlencoded({ extended: false }));
-
-
 // routes
 app.use(authRoutes);
 
-// protected home
-app.get("/", requireAuth, (req, res) => {
-    res.render("home", { user: req.session.user });
-});
+const homeRoutes = require("./routes/homeRoutes");
+app.use("/", homeRoutes);
+
+const videoRoutes = require("./routes/videoRoutes");
+app.use(videoRoutes);
 
 // fallback
 app.use((req, res) => {
@@ -44,3 +42,5 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT} updated ...`));
+
+
