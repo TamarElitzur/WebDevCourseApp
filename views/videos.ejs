@@ -4,8 +4,29 @@
   <title>Videos</title>
 </head>
 <body>
-  <h2>Videos page</h2>
-  <p>If you see this, you are logged in.</p>
+  <h2>YouTube Search</h2>
+
+  <form method="POST" action="/videos/search">
+    <input type="text" name="query" placeholder="Search YouTube..." required />
+    <button type="submit">Search</button>
+  </form>
+
+  <hr />
+
+  <% if (error) { %>
+  <p style="color:darkred;"><%= error %></p>
+<% } %>
+
+
+  <% if (results && results.length > 0) { %>
+    <h3>Results:</h3>
+    <% results.forEach(v => { %>
+      <div style="margin-bottom:20px">
+        <img src="<%= v.thumbnail %>" />
+        <p><%= v.title %></p>
+      </div>
+    <% }) %>
+  <% } %>
 
   <a href="/">Back to Home</a>
 </body>
