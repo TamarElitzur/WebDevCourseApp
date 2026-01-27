@@ -2,53 +2,50 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Videos</title>
+    <title>Videos // Module</title>
     <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        /* Helper for the search area loading state */
+        .loading-text {
+            text-align: center;
+            color: #64748b;
+            margin-top: 20px;
+            font-style: italic;
+        }
+    </style>
 </head>
 <body>
+
     <nav class="navbar flex-between">
-        <a href="/" class="nav-brand">Tamar MVC App</a>
+        <a href="/" class="nav-brand">MVC // APP</a>
         <div class="flex-center" style="gap: 15px;">
-            <a href="/" style="color: #94a3b8;">Dashboard</a>
-            <form action="/logout" method="POST">
-                <button class="btn btn-outline" style="padding: 5px 15px;">Logout</button>
+            <a href="/" class="btn btn-outline" style="padding: 8px 16px;">Home</a>
+            <form action="/auth/logout" method="POST">
+                <button class="btn btn-outline" style="padding: 8px 16px;">Logout</button>
             </form>
         </div>
     </nav>
 
     <div class="container">
-        <div class="card" style="max-width: 100%; margin-bottom: 3rem; border-left: 4px solid var(--accent-color);">
-            <h2 style="margin-bottom: 1rem;">ADD RESOURCE</h2>
-            <div class="flex-between" style="gap: 10px; align-items: flex-end;">
+        
+        <div class="card" style="max-width: 100%; margin-bottom: 3rem;">
+            <h2 style="margin-bottom: 1.5rem; color: var(--accent-color);">Find New Videos</h2>
+            
+            <div class="flex-between" style="gap: 15px; align-items: center;">
                 <div style="flex-grow: 1;">
-                    <label>YouTube ID / URL</label>
-                    <input type="text" id="searchInput" placeholder="e.g. dQw4w9WgXcQ">
+                    <input type="text" id="searchInput" placeholder="Search YouTube (e.g. 'Music')...">
                 </div>
-                <button class="btn" onclick="searchVideo()" style="width: auto;">Search</button>
+                <button class="btn" onclick="searchYouTube()" style="width: auto; padding: 14px 40px;">Search</button>
             </div>
 
-            <div id="searchResult" style="display: none; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
-                <div class="flex-between">
-                    <div>
-                        <h3 id="resultTitle" style="color: var(--accent-color);">Title</h3>
-                        <p style="font-size: 0.8rem; color: #94a3b8;">Ready to save.</p>
-                    </div>
-                    
-                    <form action="/videos/add" method="POST">
-                        <input type="hidden" name="youtubeId" id="inputYoutubeId">
-                        <input type="hidden" name="title" id="inputTitle">
-                        <input type="hidden" name="thumbnailUrl" id="inputThumb">
-                        <button class="btn" style="background-color: var(--accent-color);">SAVE</button>
-                    </form>
-                </div>
-            </div>
+            <div id="resultsArea" class="video-grid"></div>
         </div>
 
-        <h2 style="border-bottom: 2px solid var(--border-color); padding-bottom: 10px;">SAVED DATA</h2>
+        <h2 style="border-bottom: 2px solid var(--border-color); padding-bottom: 10px;">My Playlist</h2>
         
         <div class="video-grid">
             <% if (favorites.length === 0) { %>
-                <p style="color: #94a3b8;">No data found in local storage.</p>
+                <p style="color: #64748b; grid-column: 1 / -1;">No videos saved yet. Search above to add some!</p>
             <% } %>
 
             <% favorites.forEach(video => { %>
@@ -62,13 +59,13 @@
                         </iframe>
                     </div>
 
-                    <div style="padding: 15px;">
-                        <h4 style="margin-bottom: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    <div style="padding: 20px;">
+                        <h4 style="margin-bottom: 15px; font-size: 1rem; color: var(--text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                             <%= video.title %>
                         </h4>
                         <form action="/videos/delete" method="POST">
                             <input type="hidden" name="id" value="<%= video.id %>">
-                            <button class="btn btn-danger" style="padding: 8px;">Remove</button>
+                            <button class="btn btn-danger" style="padding: 10px;">Remove Video</button>
                         </form>
                     </div>
                 </div>
@@ -77,24 +74,61 @@
     </div>
 
     <script>
-        function searchVideo() {
+        async function searchYouTube() {
             const query = document.getElementById('searchInput').value;
-            let videoId = query;
-            if(query.includes('v=')) videoId = query.split('v=')[1].split('&')[0];
-            else if (query.includes('youtu.be/')) videoId = query.split('youtu.be/')[1];
-
-            if (!videoId) return alert("Invalid Input");
-
-            const title = "Video Object [" + videoId + "]";
-            const thumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-
-            document.getElementById('resultTitle').innerText = title;
-            document.getElementById('searchResult').style.display = 'block';
+            const resultsDiv = document.getElementById('resultsArea');
             
-            document.getElementById('inputYoutubeId').value = videoId;
-            document.getElementById('inputTitle').value = title;
-            document.getElementById('inputThumb').value = thumb;
+            if (!query) return alert("Please enter a search term");
+
+            // Show loading state
+            resultsDiv.innerHTML = '<p class="loading-text">Searching YouTube...</p>';
+
+            try {
+                // Call your backend API
+                const res = await fetch(`/videos/search?q=${encodeURIComponent(query)}`);
+                const videos = await res.json();
+
+                resultsDiv.innerHTML = ''; // Clear loading message
+
+                if (!videos || videos.length === 0) {
+                    resultsDiv.innerHTML = '<p class="loading-text">No results found.</p>';
+                    return;
+                }
+
+                // Loop through results and build HTML matching your .video-card style
+                videos.forEach(video => {
+                    // Safety check for video ID
+                    const videoId = video.id.videoId;
+                    if (!videoId) return; 
+
+                    const title = video.snippet.title;
+                    const thumb = video.snippet.thumbnails.medium.url;
+
+                    // Create the HTML card
+                    const cardHtml = `
+                        <div class="video-card">
+                            <img src="${thumb}" style="width: 100%; aspect-ratio: 16/9; object-fit: cover;">
+                            <div style="padding: 20px;">
+                                <h4 style="margin-bottom: 15px; font-size: 1rem; color: var(--text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    ${title}
+                                </h4>
+                                <form action="/videos/add" method="POST">
+                                    <input type="hidden" name="youtubeId" value="${videoId}">
+                                    <input type="hidden" name="title" value="${title}">
+                                    <input type="hidden" name="thumbnailUrl" value="${thumb}">
+                                    <button class="btn" style="padding: 10px;">Add to Playlist +</button>
+                                </form>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Add to grid
+                    resultsDiv.innerHTML += cardHtml;
+                });
+
+            } catch (err) {
+                console.error(err);
+                resultsDiv.innerHTML = '<p class="alert-error">Error fetching results from server.</p>';
+            }
         }
     </script>
-</body>
-</html>
